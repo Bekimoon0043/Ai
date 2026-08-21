@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuxuryCon — Campaign Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#0B0F14;
+    --panel:#11161D;
+    --panel-2:#161D26;
+    --water:#2A6F73;
+    --water-glow:#4FB8BD;
+    --gold:#C9A24B;
+    --gold-soft:#E6CE94;
+    --text:#EDEEF0;
+    --muted:#8B93A1;
+    --danger:#B85C5C;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(79,184,189,0.08), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(201,162,75,0.06), transparent 40%),
+      var(--ink);
+    color:var(--text);
+    font-family:'Manrope', sans-serif;
+    min-height:100vh;
+  }
+  header{
+    padding:40px 48px 24px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    position:relative;
+    overflow:hidden;
+  }
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    font-size:11px;
+    color:var(--water-glow);
+    font-weight:600;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:2.3rem;
+    margin:6px 0 4px;
+    letter-spacing:-0.01em;
+  }
+  header p{color:var(--muted); margin:0; max-width:560px; font-size:14.5px;}
+
+  .ripple{
+    position:absolute; top:-40px; right:-40px; width:220px; height:220px;
+    border-radius:50%; border:1px solid rgba(79,184,189,0.25);
+    animation:expand 5s ease-out infinite;
+  }
+  .ripple:nth-child(2){animation-delay:1.6s;}
+  .ripple:nth-child(3){animation-delay:3.2s;}
+  @keyframes expand{
+    0%{transform:scale(0.3); opacity:0.6;}
+    100%{transform:scale(1.6); opacity:0;}
+  }
+  @media (prefers-reduced-motion: reduce){ .ripple{animation:none; display:none;} }
+
+  main{padding:32px 48px 64px; max-width:1280px; margin:0 auto;}
+
+  .generator{
+    background:var(--panel);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:var(--radius);
+    padding:22px 24px;
+    display:grid;
+    grid-template-columns:2fr 1fr 100px auto;
+    gap:14px;
+    align-items:end;
+    margin-bottom:36px;
+  }
+  label{display:block; font-size:11.5px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.08em;}
+  input, select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid rgba(255,255,255,0.08);
+    color:var(--text);
+    padding:11px 12px;
+    border-radius:7px;
+    font-family:inherit;
+    font-size:14px;
+  }
+  input:focus, select:focus{outline:2px solid var(--water-glow); outline-offset:1px;}
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:7px;
+    font-weight:600;
+    font-size:13.5px;
+  }
+  .btn-gold{
+    background:linear-gradient(180deg, var(--gold-soft), var(--gold));
+    color:#231a06;
+    padding:12px 22px;
+    white-space:nowrap;
+  }
+  .btn-gold:disabled{opacity:.5; cursor:wait;}
+  .btn-gold:hover:not(:disabled){filter:brightness(1.05);}
+
+  .board{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:20px;
+  }
+  .column h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:1.05rem;
+    margin:0 0 14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .count{
+    font-size:11px; background:rgba(255,255,255,0.08); color:var(--muted);
+    padding:2px 8px; border-radius:20px; font-weight:600;
+  }
+  .cards{display:flex; flex-direction:column; gap:12px; min-height:60px;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:var(--radius);
+    padding:16px 16px 14px;
+    transition:border-color .2s, transform .2s;
+  }
+  .card:hover{border-color:rgba(79,184,189,0.35); transform:translateY(-1px);}
+  .card .platform{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--water-glow); font-weight:700; margin-bottom:6px;
+  }
+  .card .hook{font-family:'Fraunces', serif; font-size:15px; margin:0 0 6px; color:var(--gold-soft);}
+  .card .caption{font-size:13.5px; line-height:1.5; color:var(--text); margin:0 0 8px; white-space:pre-wrap;}
+  .card .hashtags{font-size:12px; color:var(--water-glow); margin-bottom:8px;}
+  .card .cta{font-size:12.5px; color:var(--muted); font-style:italic; margin-bottom:12px;}
+  .card .actions{display:flex; gap:8px;}
+  .card .actions button{flex:1; padding:8px; font-size:12px;}
+  .btn-approve{background:rgba(79,184,189,0.15); color:var(--water-glow); border:1px solid rgba(79,184,189,0.3) !important;}
+  .btn-reject{background:rgba(184,92,92,0.12); color:var(--danger); border:1px solid rgba(184,92,92,0.3) !important;}
+  .btn-reset{background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.1) !important;}
+
+  .empty{color:var(--muted); font-size:13px; padding:18px; border:1px dashed rgba(255,255,255,0.1); border-radius:var(--radius); text-align:center;}
+  .status-msg{font-size:12.5px; color:var(--muted); margin:-20px 0 20px; min-height:16px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ripple"></div>
+  <div class="ripple"></div>
+  <div class="ripple"></div>
+  <div class="eyebrow">LuxuryCon</div>
+  <h1>Campaign Studio</h1>
+  <p>Generate on-brand social posts with OpenAI, then approve what goes out. Every draft lands here before it leaves the building.</p>
+</header>
+
+<main>
+  <div class="generator">
+    <div>
+      <label for="topic">Campaign topic</label>
+      <input id="topic" type="text" placeholder="e.g. AI-choreographed fountain launch in Addis Ababa" />
+    </div>
+    <div>
+      <label for="platform">Platform</label>
+      <select id="platform">
+        <option value="instagram">Instagram</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="facebook">Facebook</option>
+        <option value="tiktok">TikTok</option>
+      </select>
+    </div>
+    <div>
+      <label for="count">Posts</label>
+      <input id="count" type="number" min="1" max="10" value="3" />
+    </div>
+    <button class="btn-gold" id="generateBtn">Generate drafts</button>
+  </div>
+  <div class="status-msg" id="statusMsg"></div>
+
+  <div class="board">
+    <div class="column">
+      <h2>Draft <span class="count" id="count-draft">0</span></h2>
+      <div class="cards" id="col-draft"></div>
+    </div>
+    <div class="column">
+      <h2>Approved <span class="count" id="count-approved">0</span></h2>
+      <div class="cards" id="col-approved"></div>
+    </div>
+    <div class="column">
+      <h2>Rejected <span class="count" id="count-rejected">0</span></h2>
+      <div class="cards" id="col-rejected"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // ---- Configure these three values for your deployment ----
+  const SUPABASE_URL = "YOUR_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+  const N8N_WEBHOOK_URL = "YOUR_N8N_WEBHOOK_URL/webhook/generate-campaign";
+  // ------------------------------------------------------------
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const statusMsg = document.getElementById('statusMsg');
+  const generateBtn = document.getElementById('generateBtn');
+
+  function setStatus(text){ statusMsg.textContent = text; }
+
+  function cardHTML(post){
+    return `
+      <div class="card" data-id="${post.id}">
+        <div class="platform">${post.platform}</div>
+        ${post.hook ? `<p class="hook">${escapeHtml(post.hook)}</p>` : ''}
+        <p class="caption">${escapeHtml(post.caption)}</p>
+        ${post.hashtags ? `<div class="hashtags">${escapeHtml(post.hashtags)}</div>` : ''}
+        ${post.cta ? `<div class="cta">${escapeHtml(post.cta)}</div>` : ''}
+        <div class="actions">
+          ${post.status === 'draft' ? `
+            <button class="btn-approve" onclick="updateStatus('${post.id}','approved')">Approve</button>
+            <button class="btn-reject" onclick="updateStatus('${post.id}','rejected')">Reject</button>
+          ` : `
+            <button class="btn-reset" onclick="updateStatus('${post.id}','draft')">Back to draft</button>
+          `}
+        </div>
+      </div>`;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function loadPosts(){
+    const { data, error } = await supabase
+      .from('campaign_posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error){ setStatus('Could not load posts: ' + error.message); return; }
+
+    const cols = { draft: [], approved: [], rejected: [] };
+    (data || []).forEach(p => { if (cols[p.status]) cols[p.status].push(p); });
+
+    for (const key of ['draft','approved','rejected']){
+      document.getElementById('count-' + key).textContent = cols[key].length;
+      const el = document.getElementById('col-' + key);
+      el.innerHTML = cols[key].length
+        ? cols[key].map(cardHTML).join('')
+        : `<div class="empty">Nothing here yet.</div>`;
+    }
+  }
+
+  async function updateStatus(id, status){
+    const { error } = await supabase.from('campaign_posts').update({ status }).eq('id', id);
+    if (error){ setStatus('Update failed: ' + error.message); return; }
+    loadPosts();
+  }
+  window.updateStatus = updateStatus;
+
+  generateBtn.addEventListener('click', async () => {
+    const topic = document.getElementById('topic').value.trim();
+    const platform = document.getElementById('platform').value;
+    const count = document.getElementById('count').value || 3;
+
+    if (!topic){ setStatus('Add a campaign topic first.'); return; }
+
+    generateBtn.disabled = true;
+    setStatus('Generating drafts with OpenAI…');
+
+    try {
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, platform, count })
+      });
+      if (!res.ok) throw new Error('n8n returned ' + res.status);
+      setStatus('Drafts generated. Loading…');
+      await loadPosts();
+      setStatus('');
+    } catch (err){
+      setStatus('Generation failed: ' + err.message);
+    } finally {
+      generateBtn.disabled = false;
+    }
+  });
+
+  loadPosts();
+</script>
+</body>
+</html>
